@@ -752,6 +752,7 @@ export const useSWRHandler = <Data = any, Error = any>(
 
   const swrResponse: SWRResponse<Data, Error> = {
     mutate: boundMutate,
+    revalidate,
     get data() {
       stateDependencies.data = true
       return returnedData

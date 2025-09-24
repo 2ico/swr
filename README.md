@@ -16,6 +16,69 @@
   </a>
 </p>
 
+## SWR with Exposed `revalidate` Function
+
+This fork restores the `revalidate` function that was removed in SWR v2, making it available directly from each `useSWR` hook. This is particularly useful to enable proper request deduplication with `useFocusEffect` in React Native apps.
+
+### The Problem
+
+In React Native, the common pattern for revalidating data on screen focus:
+
+```js
+const { data, mutate } = useSWR('/api/data', fetcher);
+
+useFocusEffect(
+  useCallback(() => {
+    mutate(); // This doesn't dedupe with ongoing useSWR requests!
+  }, [mutate])
+);
+```
+
+This causes duplicate requests when users navigate between screens or quickly background/foreground the app. **Note**: In SWR v1, the `revalidate` function was exposed and properly deduped with ongoing requests, but starting with SWR v2, it was removed from the public interface, leaving only `mutate()` which bypasses deduplication.
+
+### The Solution
+
+This fork exposes the `revalidate` function directly from each `useSWR` hook:
+
+#### Enhanced SWR Response
+
+Each `useSWR` hook now returns a `revalidate` function:
+
+```typescript
+const { data, error, isLoading, mutate, revalidate } = useSWR('/api/data', fetcher);
+```
+
+#### Usage with `useFocusEffect`
+
+```typescript
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import useSWR from 'swr';
+
+function MyScreen() {
+  const { data, error, revalidate } = useSWR('/api/user', fetcher);
+  
+  // Properly deduplicated focus revalidation
+  useFocusEffect(
+    useCallback(() => {
+      revalidate(); // This dedupes with ongoing useSWR requests!
+    }, [revalidate])
+  );
+
+  // ...
+}
+```
+
+#### Benefits
+
+- ✅ **Proper Deduplication**: `revalidate()` dedupes with initial `useSWR` fetches
+- ✅ **No Duplicate Requests**: Eliminates double-request issues on screen focus and app state changes
+- ✅ **Direct Control**: Each component manages its own revalidation logic
+- ✅ **Simple API**: Just use the `revalidate` function from your `useSWR` hook
+- ✅ **Backward Compatible**: All existing SWR functionality remains unchanged
+
+---
+
 ## Introduction
 
 SWR is a React Hooks library for data fetching.

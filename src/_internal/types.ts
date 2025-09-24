@@ -441,6 +441,15 @@ export type KeyedMutator<Data> = <MutationData = Data>(
   opts?: boolean | MutatorOptions<Data, MutationData>
 ) => Promise<Data | MutationData | undefined>
 
+export interface RevalidatorOptions {
+  retryCount?: number
+  dedupe?: boolean
+}
+
+export type Revalidator = (
+  revalidateOpts?: RevalidatorOptions
+) => Promise<boolean> | void
+
 export type SWRConfiguration<
   Data = any,
   Error = any,
@@ -477,6 +486,14 @@ export interface SWRResponse<Data = any, Error = any, Config = any> {
    */
   error: Error | undefined
   mutate: KeyedMutator<Data>
+  /**
+   * Revalidate the data for this key.
+   * NB: Only use for `useFocusEffect` in React Native apps.
+   * To revalidate the data for other use cases, use `mutate` instead.
+   *
+   * added in the fork https://github.com/2ico/swr
+   */
+  revalidate: Revalidator
   isValidating: boolean
   isLoading: IsLoadingResponse<Data, Config>
 }
@@ -484,15 +501,6 @@ export interface SWRResponse<Data = any, Error = any, Config = any> {
 export type KeyLoader<Args extends Arguments = Arguments> =
   | ((index: number, previousPageData: any | null) => Args)
   | null
-
-export interface RevalidatorOptions {
-  retryCount?: number
-  dedupe?: boolean
-}
-
-export type Revalidator = (
-  revalidateOpts?: RevalidatorOptions
-) => Promise<boolean> | void
 
 export type RevalidateEvent =
   | typeof revalidateEvents.FOCUS_EVENT
