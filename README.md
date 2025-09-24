@@ -16,6 +16,81 @@
   </a>
 </p>
 
+## SWR useFocusEffect Deduplication Fix
+
+This fork addresses a critical issue with SWR in React Native (Expo) where screen focus revalidations using `useFocusEffect` from `expo-router` or `@react-navigation/native` don't properly dedupe with ongoing `useSWR` requests, leading to duplicate network calls.
+
+### The Problem
+
+In React Native, the common pattern for revalidating data on screen focus:
+
+```js
+const { data, mutate } = useSWR('/api/data', fetcher);
+
+useFocusEffect(
+  useCallback(() => {
+    mutate(); // This doesn't dedupe with ongoing useSWR requests!
+  }, [mutate])
+);
+```
+
+This causes duplicate requests when users navigate between screens or quickly background/foreground the app. **Note**: In SWR v1, the `revalidate` function was exposed and properly deduped with ongoing requests, but starting with SWR v2, it was removed from the public interface, leaving only `mutate()` which bypasses deduplication.
+
+### The Solution
+
+This fork exposes SWR's internal focus revalidation system, allowing proper deduplication:
+
+#### New Exported Functions
+
+- **`triggerFocusRevalidation(cache?)`** - Triggers focus revalidation for all SWR hooks
+- **`triggerKeyFocusRevalidation(key, cache?)`** - Triggers focus revalidation for a specific key
+
+#### Usage
+
+```typescript
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { triggerFocusRevalidation, triggerKeyFocusRevalidation } from 'swr';
+
+/**
+ * Hook that triggers focus revalidation for all SWR hooks when the screen comes into focus.
+ * Uses SWR's internal focus revalidation mechanism, ensuring proper deduplication with
+ * ongoing requests from initial useSWR calls.
+ */
+export const useFocusRevalidateAll = () => {
+  useFocusEffect(
+    useCallback(() => {
+      triggerFocusRevalidation();
+    }, [])
+  );
+};
+
+/**
+ * Hook that triggers focus revalidation for a specific SWR key when the screen comes into focus.
+ * Uses SWR's internal focus revalidation mechanism, ensuring proper deduplication with
+ * ongoing requests from initial useSWR calls.
+ * 
+ * @param key - The SWR key to revalidate on focus
+ */
+export const useFocusRevalidateKey = (key: string | null) => {
+  useFocusEffect(
+    useCallback(() => {
+      if (!key) return;
+      triggerKeyFocusRevalidation(key);
+    }, [key])
+  );
+};
+```
+
+#### Benefits
+
+- ✅ **Proper Deduplication**: Focus revalidations dedupe with initial `useSWR` fetches
+- ✅ **No Duplicate Requests**: Eliminates double-request issues on screen focus and app state changes
+- ✅ **Consistent with SWR**: Uses same internal mechanism as built-in `revalidateOnFocus`
+- ✅ **Backward Compatible**: All existing SWR functionality remains unchanged
+
+---
+
 ## Introduction
 
 SWR is a React Hooks library for data fetching.

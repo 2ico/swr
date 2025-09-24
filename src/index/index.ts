@@ -7,6 +7,10 @@ export { unstable_serialize } from './serialize'
 export { useSWRConfig } from '../_internal'
 export { mutate } from '../_internal'
 export { preload } from '../_internal'
+export {
+  triggerFocusRevalidation,
+  triggerKeyFocusRevalidation
+} from '../focus-revalidate'
 
 // Config
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
